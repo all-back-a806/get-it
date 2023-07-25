@@ -71,18 +71,21 @@ spring:
           filters:
             - RemoveRequestHeader=Cookie
             - RewritePath=/concert-service/(?<segment>.*), /$\{segment}
+#            - RedisRequestFilter
 
         - id: concert-service
           uri: lb://CONCERT-SERVICE
           predicates:
             - Path=/concert-service/**
           filters:
+#            - name: KafkaRequestFilter
+#              args:
+#                topicName: concert-req
             - RemoveRequestHeader=Cookie
             - RewritePath=/concert-service/(?<segment>.*), /$\{segment}
-            - AuthorizationHeaderFilter
-            - name: KafkaRequestFilter
-              args:
-                topicName: concert-req
+#            - AuthorizationHeaderFilter
+            - RedisRequestFilter
+
 
         - id: admin-service
           uri: lb://ADMIN-SERVICE
@@ -91,6 +94,9 @@ spring:
           filters:
             - RemoveRequestHeader=Cookie
             - RewritePath=/admin-service/(?<segment>.*), /$\{segment}
+  redis:
+    host: localhost
+    port: 6379
 
 jwt:
   secret: UDVaY0VRREoyaEl2d2JlWXFFN2haOWF3ekRxbFBzTnpscEFFaE5mdDBSZw==
