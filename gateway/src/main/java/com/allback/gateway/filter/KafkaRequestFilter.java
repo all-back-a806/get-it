@@ -2,6 +2,9 @@ package com.allback.gateway.filter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.apache.kafka.clients.consumer.*;
@@ -9,6 +12,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.json.BasicJsonParser;
+import org.springframework.boot.json.JsonParser;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -42,6 +47,9 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
     @Value("${kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${kafka.partition}")
+    private int partition;
+
     public KafkaRequestFilter(KafkaTemplate<String, String> kafkaTemplate) {
         super(Config.class);
         this.kafkaTemplate = kafkaTemplate;
@@ -71,9 +79,39 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
                 return chain.filter(exchange);
             }
 
+            // 원준님이 아닌 사람들은 대기열 안 걸림
+            String authentication = request.getHeaders().get("Authorization").get(0);
+            System.out.println("jwt ::: " + authentication);
+
+            String payloadJWT = authentication.replaceFirst("Bearer ", "");
+
+            int firstDotIndex = payloadJWT.indexOf(".");
+            int secondDotIndex = payloadJWT.indexOf(".", firstDotIndex + 1);
+
+            payloadJWT = payloadJWT.substring(firstDotIndex + 1, secondDotIndex);
+
+            Base64.Decoder decoder = Base64.getUrlDecoder();
+
+            final String payload = new String(decoder.decode(payloadJWT));
+            JsonParser jsonParser = new BasicJsonParser();
+            Map<String, Object> jsonArray = jsonParser.parseMap(payload);
+
+            // 특정 값을 추출하여 반환
+            String email = jsonArray.get("email").toString();
+//            System.out.println(email + " nickname");
+            if (!email.equals("159632_@naver.com")) {
+                System.out.println("return!!!!!!!!!!!!!!");
+                return chain.filter(exchange);
+            }
+
+
+
+
+
+
             String uuid = null;
             long offset;
-            int partition;
+//            int partition;
 
 
             // 대기표를 가지고 있지 않다면 -> 최초 요청 -> kafka에 넣기
@@ -82,7 +120,7 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
 
                 // TODO : 변경해야 됨
 //                CompletableFuture<SendResult<String, String>> send = kafkaTemplate.send(config.topicName, uuid);
-                CompletableFuture<SendResult<String, String>> send = kafkaTemplate.send(config.topicName, 3, null, uuid);
+                CompletableFuture<SendResult<String, String>> send = kafkaTemplate.send(config.topicName, partition, null, uuid);
 
                 try {
                     SendResult<String, String> sendResult = send.get();
@@ -98,11 +136,11 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
 
                 headers.add("KAFKA.UUID", uuid);
                 headers.add("KAFKA.PARTITION", Integer.toString(partition));
-//                headers.add("KAFKA.OFFSET", Long.toString(offset));
+                headers.add("KAFKA.OFFSET", Long.toString(offset));
 
                 // 변경된 header로 request를 갱신
-                ServerHttpRequest request2 = exchange.getRequest().mutate().headers(httpHeaders -> httpHeaders.addAll(headers)).build();
-                exchange = exchange.mutate().request(request2).build();
+                request = exchange.getRequest().mutate().headers(httpHeaders -> httpHeaders.addAll(headers)).build();
+                exchange = exchange.mutate().request(request).build();
 
             }
 
@@ -121,10 +159,16 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
             logger.info("[endOffset] " + endOffset);
             logger.info("[offset] " + offset);
 
+            if (offset == 0) {
+                priorityQueue.clear();
+            }
+
             // 대기 취소라면
             if (request.getHeaders().containsKey("KAFKA.QUIT")) {
 
                 priorityQueue.add(offset);
+
+                System.out.println(offset + " 요청 취소가 들어왔음 cancel request!!!!!!!!");
 
                 // 응답 만들기
                 ServerHttpResponse response = exchange.getResponse();
@@ -139,14 +183,62 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
                         .flatMap(Void -> Mono.error(new ResponseStatusException(HttpStatus.OK, message)));
             }
 
-            // 대기열이 있다면 -> 토큰 반환하고 끝내기
-            // committedOffset >= offset이어야 됨
-            while (priorityQueue.size() > 0 && offset > priorityQueue.peek()) {
-                priorityQueue.poll();
-                committedOffset++;
+            // committed offset과 offset 사이가 전부 취소표라면, 내 요청을 처리할 수 있다.
+            long i = committedOffset + 1;
+            for (long j : priorityQueue) {
+                System.out.print(j + " ");
+            }
+            System.out.println();
+
+            for (; i < offset; i++) {
+                boolean idx = true;
+                for (long j : priorityQueue) {
+                    if (j == i) {
+                        System.out.println("일치");
+                        idx = false;
+                        break;
+                    }
+                }
+                if (idx) break;
             }
 
-            if (committedOffset < offset) {
+            // 대기열이 없다면 -> 요청 처리하기
+            if (i == offset) {
+                // 내 바로 뒤에 취소표 있으면 같이 제거하기
+//                long newOffset = offset;
+//                while (priorityQueue.size() > 0 && newOffset <= endOffset && newOffset + 1 == priorityQueue.peek()) {
+//                    newOffset++;
+//                    System.out.println(offset + "번째 offset 바로 뒤에 있는 " + newOffset + " offset 건너뛰기 jump!");
+//                    priorityQueue.poll();
+//                }
+//
+//                if (newOffset != offset) {
+//                    HttpHeaders headers = new HttpHeaders();
+//                    headers.add("KAFKA.OFFSET", Long.toString(newOffset));
+//
+//                    // 변경된 header로 request를 갱신
+//                    request = exchange.getRequest().mutate().headers(httpHeaders -> httpHeaders.addAll(headers)).build();
+//                    exchange = exchange.mutate().request(request).build();
+//                }
+
+
+                // TODO : 각 Spring 서버를 Kafka의 Consumer로 설정해놓고, 요청 하나 처리할 때마다 메시지 commit 해야됨
+                //  메시지 uuid 값을 같이 넘겨줘서, 같은 메시지가 commit 되어야함
+                //  파티션 번호!
+
+
+                return chain.filter(exchange);
+            }
+
+
+            // 내 앞에 취소표가 있다면 queue에서 제거하기
+//            while (priorityQueue.size() > 0 && offset > priorityQueue.peek()) {
+//                Long poll = priorityQueue.poll();
+//                System.out.println(offset + " 번째 오프셋 앞에 있는 " + poll + "번째 오프셋 삭제");
+//                committedOffset = Math.max(committedOffset + 1, poll);
+//            }
+            // 대기열이 있다면 -> 토큰 반환하고 끝내기
+            else {
                 // 클라이언트에게 보낼 응답 생성
                 ServerHttpResponse response = exchange.getResponse();
                 response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
@@ -172,33 +264,6 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
                 // 응답을 클라이언트에게 전송하고 filter 체인 종료
                 return response.writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(responseBytes)));
             }
-
-            // 대기열이 없다면 -> 요청 처리하기
-            else {
-                long newOffset = offset;
-                while (priorityQueue.size() > 0 && newOffset <= endOffset && newOffset + 1 == priorityQueue.peek()) {
-                    System.out.println(offset + 1 + " record delete");
-                    newOffset++;
-                    priorityQueue.poll();
-                }
-
-                if (newOffset != offset) {
-                    HttpHeaders headers3 = new HttpHeaders();
-                    headers3.add("KAFKA.OFFSET", Long.toString(offset));
-
-                    // 변경된 header로 request를 갱신
-                    ServerHttpRequest request3 = exchange.getRequest().mutate().headers(httpHeaders -> httpHeaders.addAll(headers3)).build();
-                    exchange = exchange.mutate().request(request3).build();
-                }
-
-
-                // TODO : 각 Spring 서버를 Kafka의 Consumer로 설정해놓고, 요청 하나 처리할 때마다 메시지 commit 해야됨
-                //  메시지 uuid 값을 같이 넘겨줘서, 같은 메시지가 commit 되어야함
-                //  파티션 번호!
-
-
-                return chain.filter(exchange);
-            }
         };
     }
 
@@ -212,7 +277,7 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
         TopicPartition topicPartition = new TopicPartition(topic, partition);
         KafkaConsumer<String, String> consumer = createConsumer("concert-req");
         consumer.assign(Collections.singletonList(topicPartition));
-        return consumer.position(topicPartition);
+        return consumer.position(topicPartition) - 1;
     }
 
     private long getEndOffset(int partition) {
@@ -220,7 +285,7 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
         KafkaConsumer<String, String> consumer = createConsumer("concert-req");
         consumer.assign(Collections.singletonList(topicPartition));
         consumer.seekToEnd(Collections.singletonList(topicPartition));
-        return consumer.position(topicPartition);
+        return consumer.position(topicPartition) - 1;
     }
 
     @Data
