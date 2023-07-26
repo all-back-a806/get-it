@@ -3,6 +3,7 @@ package com.allback.gateway.filter;
 import com.allback.gateway.config.RedisConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.net.HttpHeaders;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,13 +11,14 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.json.BasicJsonParser;
+import org.springframework.boot.json.JsonParser;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -24,16 +26,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
-import java.util.Objects;
+import java.util.*;
 
 @Component
 public class RedisRequestFilter extends AbstractGatewayFilterFactory<RedisRequestFilter.Config> {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisRequestFilter.class);
+    private static final Base64.Decoder decoder = Base64.getUrlDecoder();
+    private static final JsonParser jsonParser = new BasicJsonParser();
+    private static final String KEY = "queue";
+
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
-    private ZSetOperations<String, String> zSetOps;
-    private final String KEY = "queue";
+
 
     /**
      * Client에게 보낼 대기표 Response 형식
@@ -57,31 +62,36 @@ public class RedisRequestFilter extends AbstractGatewayFilterFactory<RedisReques
         return (exchange, chain) -> {
 
             ServerHttpRequest request = exchange.getRequest();
+            Optional<List<String>> comm = Optional.ofNullable(request.getHeaders().get("QUEUE"));
 
             // 대기열을 거치지 않는 요청 (header에 QUEUE가 없다)
-            if (!request.getHeaders().containsKey("QUEUE")) {
+            if (comm.isPresent() && comm.get().get(0).equals("PASS")) {
                 return chain.filter(exchange);
             }
 
-            String COMMAND = request.getHeaders().get("QUEUE").get(0);
-            String value = "user3"; // TODO : JWT에서 사용자 아이디를 뽑아내서 value 값으로 사용하기
-            double score = 0d;  // 정렬 기준(대기표 발급 시각). 작을수록 순위가 높다.
+            String jwt = request.getHeaders().get(HttpHeaders.AUTHORIZATION).get(0).replace("Bearer", "");
+            String[] chunks = jwt.split("\\.");
+            String payload = new String(decoder.decode(chunks[1]));
+            Map<String, Object> jsonArray = jsonParser.parseMap(payload);
 
+
+            String value = jsonArray.get("userId").toString(); // JWT에서 뽑아낸 사용자 아이디
+            Double score = redisTemplate.opsForZSet().score(KEY, value);  // 정렬 기준(대기표 발급 시각). 작을수록 순위가 높다.
+
+            Long rank = redisTemplate.opsForZSet().rank(KEY, value);    // 내가 몇 등인지
+            Long size = redisTemplate.opsForZSet().size(KEY);   // 총 몇 명이 대기 중인지
 
             // 1. 최초 요청
-            if (COMMAND.equals("FIRST")) {
+            if (rank == null) {
                 // redis에 넣기
-                score = System.currentTimeMillis();
-                redisTemplate.opsForZSet().add(KEY, value, score);
-            }
-
-            // 2. 재요청
-            else if (COMMAND.equals("RE")) {
-                // 특별히 필요한 코드는 없다.
+                score = (double)System.currentTimeMillis();
+                redisTemplate.opsForZSet().addIfAbsent(KEY, value, score);
+                rank = redisTemplate.opsForZSet().rank(KEY, value);    // 내가 몇 등인지
+                size = redisTemplate.opsForZSet().size(KEY);
             }
 
             // 3. 대기 취소 요청
-            else if (COMMAND.equals("QUIT")) {
+            else if (comm.isPresent() && comm.get().get(0).equals("QUIT")) {
                 // redis에서 해당 데이터 삭제
                 redisTemplate.opsForZSet().remove(KEY, value);
 
@@ -98,9 +108,7 @@ public class RedisRequestFilter extends AbstractGatewayFilterFactory<RedisReques
                         .flatMap(Void -> Mono.error(new ResponseStatusException(HttpStatus.OK, message)));
             }
 
-
-            Long rank = redisTemplate.opsForZSet().rank(KEY, value);    // 내가 몇 등인지
-            Long size = redisTemplate.opsForZSet().size(KEY);   // 총 몇 명이 대기 중인지
+            logger.info("rank : " + rank + ", size : " + size);
 
             // 1. 내 차례일 경우
             if (rank == 0) {
