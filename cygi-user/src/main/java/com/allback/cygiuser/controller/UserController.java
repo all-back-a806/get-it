@@ -1,7 +1,9 @@
 package com.allback.cygiuser.controller;
 
 
+import com.allback.cygiuser.config.jwt.JwtTokenProvider;
 import com.allback.cygiuser.dto.request.UserTestReqDto;
+import com.allback.cygiuser.dto.response.UserTestResDto;
 import com.allback.cygiuser.service.UserService;
 import com.allback.cygiuser.util.Response;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +17,8 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @Tag(name = "user-contoller", description = "유저 컨트롤러")
 @Slf4j
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Operation(summary = "포인트 조회")
     @GetMapping("/point/{userId}")
@@ -43,4 +48,14 @@ public class UserController {
         }
         return userService.logout(logout);
     }
+
+    @Operation(summary = "테스트용 JWT 발급")
+    @GetMapping("/test/login")
+    ResponseEntity<String> testLogin() {
+        UserTestResDto.TokenInfo tokenInfo = jwtTokenProvider.generateToken("test", System.currentTimeMillis(),
+                "test", "test", "test", "test");
+
+        return new ResponseEntity<>(tokenInfo.getAccessToken(), HttpStatus.OK);
+    }
+
 }
