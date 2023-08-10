@@ -1,7 +1,5 @@
 pipeline{
-    agent {
-        label 'master'
-    }
+    agent any
 
     environment {
         DOCKER_HUB_CREDS = 'docker-hub-credentials'
