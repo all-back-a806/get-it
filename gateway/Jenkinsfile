@@ -31,7 +31,7 @@ pipeline{
                     sh 'ls'
                     sh 'pwd'
                     sh 'chmod +x ./gradlew'
-                    sh './gradlew clean build'
+                    sh './gradlew build'
                 }
             }
         }
