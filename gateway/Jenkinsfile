@@ -1,5 +1,7 @@
 pipeline{
-    agent any
+    agent {
+        label 'master'
+    }
 
     environment {
         DOCKER_HUB_CREDS = 'docker-hub-credentials'
@@ -27,10 +29,7 @@ pipeline{
         stage('Gradle Build, jdk17'){
             steps{
                 dir('gateway/'){
-                    withEnv(["JAVA_HOME=${tool 'jdk-17.0.2+8'}", "PATH=${tool 'jdk-17.0.2+8'}/bin:${env.PATH}"]) {
-                        echo "JDK17 ============================="
                         sh 'java -version'
-                        sh 'javac -version'
                         sh 'ls'
                         sh 'pwd'
                         sh 'chmod +x ./gradlew'
