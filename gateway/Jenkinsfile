@@ -27,7 +27,7 @@ pipeline{
         stage('Gradle Build, jdk17'){
             steps{
                 dir('gateway/'){
-                    withEnv(["JAVA_HOME=${tool 'jdk-17.0.2'}", "PATH=${tool 'jdk-17.0.2'}/bin:${env.PATH}"]) {
+                    withEnv(["JAVA_HOME=${tool 'jdk-17.0.2+8'}", "PATH=${tool 'jdk-17.0.2+8'}/bin:${env.PATH}"]) {
                         echo "JDK17 ============================="
                         sh 'java -version'
                         sh 'javac -version'
@@ -36,11 +36,6 @@ pipeline{
                         sh 'chmod +x ./gradlew'
                         sh './gradlew clean build'
                     }
-                    // sh 'ls'
-                    // sh 'pwd'
-                    // sh 'java -version'
-                    // sh 'chmod +x ./gradlew'
-                    // sh './gradlew clean build'
                 }
             }
         }
