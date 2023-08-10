@@ -24,14 +24,23 @@ pipeline{
             }
         }
 
-        stage('Gradle Build'){
+        stage('Gradle Build, jdk17'){
             steps{
                 dir('gateway/'){
-                    sh 'ls'
-                    sh 'pwd'
-                    sh 'java -version'
-                    sh 'chmod +x ./gradlew'
-                    sh './gradlew clean build'
+                    withEnv(["JAVA_HOME=${tool 'jdk-17.0.2'}", "PATH=${tool 'jdk-17.0.2'}/bin:${env.PATH}"]) {
+                        echo "JDK17 ============================="
+                        sh 'java -version'
+                        sh 'javac -version'
+                        sh 'ls'
+                        sh 'pwd'
+                        sh 'chmod +x ./gradlew'
+                        sh './gradlew clean build'
+                    }
+                    // sh 'ls'
+                    // sh 'pwd'
+                    // sh 'java -version'
+                    // sh 'chmod +x ./gradlew'
+                    // sh './gradlew clean build'
                 }
             }
         }
