@@ -1,6 +1,6 @@
 pipeline{
-    agent { label 'master' }
-
+    agent any
+    
     environment {
         DOCKER_HUB_CREDS = 'docker-hub-credentials'
         GITHUB_CREDS = 'github-credentials'
@@ -24,7 +24,7 @@ pipeline{
             }
         }
 
-        stage('Gradle Build, jdk17'){
+        stage('Gradle Build'){
             steps{
                 dir('gateway/'){
                     sh 'java -version'
