@@ -1,5 +1,5 @@
 pipeline{
-    agent any
+    agent { label 'master' }
 
     environment {
         DOCKER_HUB_CREDS = 'docker-hub-credentials'
@@ -27,15 +27,15 @@ pipeline{
         stage('Gradle Build, jdk17'){
             steps{
                 dir('gateway/'){
-                        sh 'java -version'
-                        sh 'ls'
-                        sh 'pwd'
-                        sh 'chmod +x ./gradlew'
-                        sh './gradlew clean build'
-                    }
+                    sh 'java -version'
+                    sh 'ls'
+                    sh 'pwd'
+                    sh 'chmod +x ./gradlew'
+                    sh './gradlew clean build'
                 }
             }
         }
+        
 
         stage('Build Docker'){
             steps{
