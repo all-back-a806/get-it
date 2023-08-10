@@ -29,6 +29,7 @@ pipeline{
                 dir('gateway/'){
                     sh 'ls'
                     sh 'chmod +x ./gradlew'
+                    sh './gradlew cleanBuildCache'
                     sh './gradlew clean build'
                 }
             }
