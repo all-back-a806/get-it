@@ -1,6 +1,7 @@
 package com.allback.cygiconcert.config;
 
-import com.allback.cygiconcert.config.interceptor.KafkaInterceptor;
+//import com.allback.cygiconcert.config.interceptor.KafkaInterceptor;
+import com.allback.cygiconcert.config.interceptor.QueueInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -11,7 +12,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     @Autowired
-    private KafkaInterceptor kafkaInterceptor;
+//    private KafkaInterceptor kafkaInterceptor;
+    private QueueInterceptor queueInterceptor;
+
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -26,6 +29,6 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(kafkaInterceptor);
+        registry.addInterceptor(queueInterceptor);
     }
 }
