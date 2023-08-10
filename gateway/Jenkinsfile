@@ -15,7 +15,6 @@ pipeline{
         //             channel: "all_back_jenkins"
         //     }
         // }
-        // 
         
         stage('Clone Repo'){
             steps{
