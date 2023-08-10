@@ -1,5 +1,6 @@
 package com.allback.gateway.filter;
 
+import com.allback.gateway.KafkaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,7 @@ import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -17,35 +19,32 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.apache.kafka.common.TopicPartition;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 @Component
 public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaRequestFilter.Config> {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaRequestFilter.class);
-    private final KafkaTemplate<String, String> kafkaTemplate;
-    private final String topic = "concert-req";
-    private PriorityQueue<Long> priorityQueue = new PriorityQueue<>();
-    @Value("${kafka.bootstrap-servers}")
-    private String bootstrapServers;
 
-    public KafkaRequestFilter(KafkaTemplate<String, String> kafkaTemplate) {
+    private KafkaService kafkaService;
+
+    @Autowired
+    public KafkaRequestFilter(KafkaService kafkaService) {
         super(Config.class);
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaService = kafkaService;
     }
+
+    @Data
+    public static class Config {}
 
     /**
      * Client에게 보낼 대기표 Response 형식
@@ -53,7 +52,7 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
     @Data
     @AllArgsConstructor
     static class JsonResponse {
-        private String uuid;
+        private Long uuid;
         private Integer partition;
         private Long offset;
         private Long committedOffset;
@@ -71,29 +70,29 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
                 return chain.filter(exchange);
             }
 
-            String uuid = null;
-            long offset;
-            int partition;
+
+            long uuid; // 대기표 고유값
+            long offset;    // 나의 대기표 순번
+            int partition;  // 나의 대기표가 들어있는 partition 번호
 
 
             // 대기표를 가지고 있지 않다면 -> 최초 요청 -> kafka에 넣기
             if (!request.getHeaders().containsKey("KAFKA.UUID")) {
-                uuid = UUID.randomUUID().toString();
+                uuid = System.currentTimeMillis();
 
-                // TODO : 변경해야 됨
 //                CompletableFuture<SendResult<String, String>> send = kafkaTemplate.send(config.topicName, uuid);
-                CompletableFuture<SendResult<String, String>> send = kafkaTemplate.send(config.topicName, 3, null, uuid);
+                logger.info("카프카에 데이터 넣기!");
+                CompletableFuture<SendResult<String, String>> send = kafkaService.send(Long.toString(uuid));
 
                 try {
                     SendResult<String, String> sendResult = send.get();
-
-                    // kafka에 넣은 메시지(대기표)가 몇 번째 partition의 몇 번째 offset에 들어갔는지
-                    offset = sendResult.getRecordMetadata().offset();
-                    partition = sendResult.getRecordMetadata().partition();
+                    partition = sendResult.getRecordMetadata().partition(); // 나의 대기표가 어느 partition에 들어갔는지
+                    offset = sendResult.getRecordMetadata().offset();   // 나의 대기표가 몇 번째 순서로 들어갔는지
 
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
+
                 HttpHeaders headers = new HttpHeaders();
 
                 headers.add("KAFKA.UUID", uuid);
@@ -101,30 +100,37 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
 //                headers.add("KAFKA.OFFSET", Long.toString(offset));
 
                 // 변경된 header로 request를 갱신
-                ServerHttpRequest request2 = exchange.getRequest().mutate().headers(httpHeaders -> httpHeaders.addAll(headers)).build();
-                exchange = exchange.mutate().request(request2).build();
-
+                request = exchange.getRequest().mutate().headers(httpHeaders -> httpHeaders.addAll(headers)).build();
+                exchange = exchange.mutate().request(request).build();
             }
 
             // 대기표를 가지고 있다면
             else {
-                uuid = request.getHeaders().get("KAFKA.UUID").get(0);
+                uuid = Long.parseLong(request.getHeaders().get("KAFKA.UUID").get(0));
                 partition = Integer.parseInt(request.getHeaders().get("KAFKA.PARTITION").get(0));
                 offset = Long.parseLong(request.getHeaders().get("KAFKA.OFFSET").get(0));
             }
 
-            // Consumer가 마지막으로 읽은 레코드의 Offset 값 알아내기
-            long committedOffset = getCommittedOffset(partition);
-            long endOffset = getEndOffset(partition);
-            logger.info("[header] " + request.getHeaders().get("KAFKA.OFFSET"));
-            logger.info("[committedOffset] " + committedOffset);
-            logger.info("[endOffset] " + endOffset);
-            logger.info("[offset] " + offset);
 
-            // 대기 취소라면
+            // Consumer가 마지막으로 읽은 레코드의 Offset 값 알아내기
+            long committedOffset = kafkaService.getCommittedOffset();   // Consumer가 마지막으로 읽은 레코드의 Offset 값
+            long endOffset = kafkaService.getEndOffset();   // Producer가 마지막으로 넣은 레코드의 Offset 값
+
+            logger.info("[KafkaRequestFilter] offset : " + request.getHeaders().get("KAFKA.OFFSET"));
+            logger.info("[KafkaRequestFilter] committedOffset : " + committedOffset);
+            logger.info("[KafkaRequestFilter] endOffset : " + endOffset);
+            logger.info("[KafkaRequestFilter] offset : " + offset);
+
+
+            // 대기 취소 요청이라면 -> 해당 offset 차례가 도래했을 때, 건너뛰게 하기
+            if (offset == 0) {
+                kafkaService.resetCancel();
+            }
+
             if (request.getHeaders().containsKey("KAFKA.QUIT")) {
 
-                priorityQueue.add(offset);
+                kafkaService.cancel(offset);
+
 
                 // 응답 만들기
                 ServerHttpResponse response = exchange.getResponse();
@@ -139,13 +145,17 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
                         .flatMap(Void -> Mono.error(new ResponseStatusException(HttpStatus.OK, message)));
             }
 
-            // 대기열이 있다면 -> 토큰 반환하고 끝내기
+            // 내 앞에 취소표가 있다면, 그만큼 committedOffset 값을 늘려주기
             // committedOffset >= offset이어야 됨
-            while (priorityQueue.size() > 0 && offset > priorityQueue.peek()) {
-                priorityQueue.poll();
+            while (kafkaService.getCancelSize() > 0 && offset > kafkaService.getCancelPeek()) {
+                Long peek = kafkaService.jump();
+//                committedOffset = Math.max(committedOffset, peek);
                 committedOffset++;
             }
 
+            // 2단계 : 대기열이 존재하는지 판단하기
+            // 대기열이 있다면
+            // -> 토큰 반환하고 끝내기
             if (committedOffset < offset) {
                 // 클라이언트에게 보낼 응답 생성
                 ServerHttpResponse response = exchange.getResponse();
@@ -196,52 +206,8 @@ public class KafkaRequestFilter extends AbstractGatewayFilterFactory<KafkaReques
                 //  메시지 uuid 값을 같이 넘겨줘서, 같은 메시지가 commit 되어야함
                 //  파티션 번호!
 
-
                 return chain.filter(exchange);
             }
         };
-    }
-
-    /**
-     * 특정 파티션에서, Consumer가 제일 최근에 commit한 메시지의 offset 값 알아내기
-     *
-     * @param partition
-     * @return
-     */
-    private long getCommittedOffset(int partition) {
-        TopicPartition topicPartition = new TopicPartition(topic, partition);
-        KafkaConsumer<String, String> consumer = createConsumer("concert-req");
-        consumer.assign(Collections.singletonList(topicPartition));
-        return consumer.position(topicPartition);
-    }
-
-    private long getEndOffset(int partition) {
-        TopicPartition topicPartition = new TopicPartition(topic, partition);
-        KafkaConsumer<String, String> consumer = createConsumer("concert-req");
-        consumer.assign(Collections.singletonList(topicPartition));
-        consumer.seekToEnd(Collections.singletonList(topicPartition));
-        return consumer.position(topicPartition);
-    }
-
-    @Data
-    public static class Config {
-        private String topicName;
-    }
-
-    /**
-     * Kafka Consumer 생성 메서드
-     *
-     * @param consumerGroupId
-     * @return KafkaConsumer
-     */
-    private KafkaConsumer<String, String> createConsumer(String consumerGroupId) {
-        Properties properties = new Properties();
-        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
-        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        return new KafkaConsumer<>(properties);
     }
 }
