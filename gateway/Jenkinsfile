@@ -15,7 +15,8 @@ pipeline{
         //             channel: "all_back_jenkins"
         //     }
         // }
-
+        // 
+        
         stage('Clone Repo'){
             steps{
                 git url: 'https://github.com/all-back-a806/get-it.git',
