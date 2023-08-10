@@ -14,7 +14,7 @@ pipeline{
         //             endpoint: "https://meeting.ssafy.com/hooks/fzxngahki3bitej3t1osyhxeor",
         //             channel: "all_back_jenkins"
         //     }
-        // }
+        // }//
         
         stage('Clone Repo'){
             steps{
