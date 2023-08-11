@@ -1,13 +1,10 @@
 package com.allback.gateway.filter;
 
-import com.allback.gateway.config.RedisConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
-import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +14,6 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -27,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class RedisRequestFilter extends AbstractGatewayFilterFactory<RedisRequestFilter.Config> {
@@ -54,7 +50,6 @@ public class RedisRequestFilter extends AbstractGatewayFilterFactory<RedisReques
 
     public RedisRequestFilter() {
         super(Config.class);
-//        zSetOps = redisTemplate.opsForZSet();
     }
 
     @Override
@@ -75,25 +70,29 @@ public class RedisRequestFilter extends AbstractGatewayFilterFactory<RedisReques
             Map<String, Object> jsonArray = jsonParser.parseMap(payload);
 
 
-            String value = jsonArray.get("userId").toString(); // JWT에서 뽑아낸 사용자 아이디
-            Double score = redisTemplate.opsForZSet().score(KEY, value);  // 정렬 기준(대기표 발급 시각). 작을수록 순위가 높다.
+            String userId = jsonArray.get("userId").toString(); // JWT에서 뽑아낸 사용자 아이디
+            Double score = redisTemplate.opsForZSet().score(KEY, userId);  // 정렬 기준(대기표 발급 시각). 작을수록 순위가 높다.
 
-            Long rank = redisTemplate.opsForZSet().rank(KEY, value);    // 내가 몇 등인지
+            Long rank = redisTemplate.opsForZSet().rank(KEY, userId);    // 내가 몇 등인지 (null 이면 대기표 안 끊음)
             Long size = redisTemplate.opsForZSet().size(KEY);   // 총 몇 명이 대기 중인지
+//            String s = redisTemplate.opsForValue().get(userId); // 만료시간 지났는지 체크용
 
             // 1. 최초 요청
             if (rank == null) {
                 // redis에 넣기
                 score = (double)System.currentTimeMillis();
-                redisTemplate.opsForZSet().addIfAbsent(KEY, value, score);
-                rank = redisTemplate.opsForZSet().rank(KEY, value);    // 내가 몇 등인지
+                redisTemplate.opsForZSet().addIfAbsent(KEY, userId, score);
+                rank = redisTemplate.opsForZSet().rank(KEY, userId);    // 내가 몇 등인지
                 size = redisTemplate.opsForZSet().size(KEY);
+
+                // 만료 시간은 10초
+                redisTemplate.opsForValue().set(userId, "value", 5, TimeUnit.SECONDS);
             }
 
-            // 3. 대기 취소 요청
+            // 2. 대기 취소 요청
             else if (comm.isPresent() && comm.get().get(0).equals("QUIT")) {
                 // redis에서 해당 데이터 삭제
-                redisTemplate.opsForZSet().remove(KEY, value);
+                redisTemplate.opsForZSet().remove(KEY, userId);
 
                 // 응답 만들기
                 ServerHttpResponse response = exchange.getResponse();
@@ -108,9 +107,15 @@ public class RedisRequestFilter extends AbstractGatewayFilterFactory<RedisReques
                         .flatMap(Void -> Mono.error(new ResponseStatusException(HttpStatus.OK, message)));
             }
 
+            // 3. 재요청
+            else {
+                // 만료 시간 10초 연장
+                redisTemplate.opsForValue().set(userId, "value", 5, TimeUnit.SECONDS);
+            }
+
             logger.info("rank : " + rank + ", size : " + size);
 
-            // 1. 내 차례일 경우
+            // 1. 내 차례일 경우 (5명씩 입장)
             if (rank == 0) {
                 return chain.filter(exchange);
             }
