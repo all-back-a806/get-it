@@ -30,7 +30,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 
     // spring kafka
-    implementation 'org.springframework.kafka:spring-kafka'
+//    implementation 'org.springframework.kafka:spring-kafka'
 
     // JWT
     // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api
