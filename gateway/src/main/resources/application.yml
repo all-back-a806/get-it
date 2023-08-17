@@ -80,9 +80,9 @@ spring:
             - RemoveRequestHeader=Cookie
             - RewritePath=/concert-service/(?<segment>.*), /$\{segment}
             - AuthorizationHeaderFilter
-            - name: KafkaRequestFilter
-              args:
-                topicName: concert-req
+#            - name: KafkaRequestFilter
+#              args:
+#                topicName: concert-req
 
         - id: admin-service
           uri: http://localhost:8090
@@ -104,5 +104,5 @@ spring:
 jwt:
   secret: UDVaY0VRREoyaEl2d2JlWXFFN2haOWF3ekRxbFBzTnpscEFFaE5mdDBSZw==
 
-kafka:
-  bootstrap-servers: 3.34.8.99:9092
+#kafka:
+#  bootstrap-servers: 3.34.8.99:9092
