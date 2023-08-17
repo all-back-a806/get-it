@@ -1,6 +1,6 @@
 pipeline{
     agent any
-
+    
     environment {
         DOCKER_HUB_CREDS = 'docker-hub-credentials'
         GITHUB_CREDS = 'github-credentials'
@@ -14,12 +14,12 @@ pipeline{
         //             endpoint: "https://meeting.ssafy.com/hooks/fzxngahki3bitej3t1osyhxeor",
         //             channel: "all_back_jenkins"
         //     }
-        // }
-
+        // }//
+        
         stage('Clone Repo'){
             steps{
                 git url: 'https://github.com/all-back-a806/get-it.git',
-                    credentialsId: 'wlwlsus', // Jenkins에서 설정한 credential의 ID
+                    credentialsId: "${GITHUB_CREDS}", // Jenkins에서 설정한 credential의 ID
                     branch: 'deploy-k8s-gateway'
             }
         }
@@ -27,12 +27,15 @@ pipeline{
         stage('Gradle Build'){
             steps{
                 dir('gateway/'){
+                    sh 'java -version'
                     sh 'ls'
+                    sh 'pwd'
                     sh 'chmod +x ./gradlew'
-                    sh './gradlew clean build'
+                    sh './gradlew build'
                 }
             }
         }
+        
 
         stage('Build Docker'){
             steps{
