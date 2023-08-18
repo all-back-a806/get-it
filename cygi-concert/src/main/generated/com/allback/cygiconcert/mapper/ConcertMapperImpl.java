@@ -7,6 +7,8 @@ import com.allback.cygiconcert.dto.response.ConcertResDto;
 import com.allback.cygiconcert.dto.response.ConcertResDto.ConcertResDtoBuilder;
 import com.allback.cygiconcert.entity.Concert;
 import com.allback.cygiconcert.entity.Concert.ConcertBuilder;
+import com.allback.cygiconcert.entity.Stage;
+import com.allback.cygiconcert.entity.Stage.StageBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.processing.Generated;
@@ -14,7 +16,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2023-05-16T20:15:52+0900",
+    date = "2023-08-18T23:32:19+0900",
     comments = "version: 1.4.2.Final, compiler: javac, environment: Java 17.0.5 (Amazon.com Inc.)"
 )
 @Component
@@ -47,6 +49,7 @@ public class ConcertMapperImpl implements ConcertMapper {
 
         ConcertBuilder concert = Concert.builder();
 
+        concert.stage( concertReqDtoToStage( concertReqDto ) );
         concert.userId( concertReqDto.getUserId() );
         concert.title( concertReqDto.getTitle() );
         concert.content( concertReqDto.getContent() );
@@ -69,6 +72,18 @@ public class ConcertMapperImpl implements ConcertMapper {
         }
 
         return list;
+    }
+
+    protected Stage concertReqDtoToStage(ConcertReqDto concertReqDto) {
+        if ( concertReqDto == null ) {
+            return null;
+        }
+
+        StageBuilder stage = Stage.builder();
+
+        stage.stageId( concertReqDto.getStageId() );
+
+        return stage.build();
     }
 
     protected ConcertPageResDto concertToConcertPageResDto(Concert concert) {

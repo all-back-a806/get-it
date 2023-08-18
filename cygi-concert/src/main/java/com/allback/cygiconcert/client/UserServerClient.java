@@ -14,6 +14,6 @@ import org.springframework.web.bind.annotation.*;
 public interface UserServerClient {
 
   @GetMapping("/{userId}")
-  ResponseEntity<Void> checkUser(@PathVariable long userId);
+  ResponseEntity<Void> checkUser(@PathVariable("userId") long userId);
 }
 

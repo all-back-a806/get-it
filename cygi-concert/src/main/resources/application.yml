@@ -22,15 +22,15 @@ spring:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
-  kafka:
-    consumer:
-      bootstrap-servers: 3.34.8.99:9092
-      group-id: concert-req
-      topic: concert-req
-      partition: 3
-      max-poll-interval-ms: 600000
-    listener:
-      type: SINGLE
+#  kafka:
+#    consumer:
+#      bootstrap-servers: 3.34.8.99:9092
+#      group-id: concert-req
+#      topic: concert-req
+#      partition: 3
+#      max-poll-interval-ms: 600000
+#    listener:
+#      type: SINGLE
 
 cloud:
   aws:
