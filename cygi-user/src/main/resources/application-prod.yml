@@ -59,16 +59,17 @@ springdoc:
     config-url: /user-service/api/v1/v3/api-docs/swagger-config
     url: /user-service/api/v1/v3/api-docs
 
+app:
+  oauth2:
+    authorizedRedirectUris: http://allback.site/oauth/redirect
+
+
 #  zipkin:
 #    base-url: http://zipkin.allback.site:9411
 #    enabled: true
 #  sleuth:
 #    sampler:
 #      probability: 1.0
-
-#app:
-#  oauth2:
-#    authorizedRedirectUris: http://allback.site/oauth/redirect
 
 ## Eureka Client
 #eureka:
