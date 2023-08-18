@@ -80,7 +80,7 @@ spring:
             - RemoveRequestHeader=Cookie
             - RewritePath=/concert-service/(?<segment>.*), /$\{segment}
             - AuthorizationHeaderFilter
-            - KafkaRequestFilter
+#            - KafkaRequestFilter
 
         - id: admin-service
           uri: lb://ADMIN-SERVICE
