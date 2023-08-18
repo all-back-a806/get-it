@@ -11,41 +11,41 @@ spring:
       ddl-auto: update
     generate-ddl: false
     show-sql: true
-  zipkin:
-    base-url: http://zipkin.allback.site:9411
-    enabled: true
-  sleuth:
-    sampler:
-      probability: 1.0
+#  zipkin:
+#    base-url: http://zipkin.allback.site:9411
+#    enabled: true
+#  sleuth:
+#    sampler:
+#      probability: 1.0
   datasource:
-    url: jdbc:mysql://k8a806.p.ssafy.io:3308/ssafy806_concert
-    username: ssafy806
-    password: ssafy806
-  servlet:
-    multipart:
-      max-file-size: 20MB
-      max-request-size: 20MB
-  kafka:
-    consumer:
-      bootstrap-servers: 3.34.8.99:9092
-      group-id: concert-req
-      topic: concert-req
-      partition: 3
-      max-poll-interval-ms: 600000
-    listener:
-      type: SINGLE
+    url: jdbc:mysql://${DATABASE_URL}:${DATABASE_PORT}/${DATABASE_USER_DB_NAME}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+#  servlet:
+#    multipart:
+#      max-file-size: 20MB
+#      max-request-size: 20MB
+#  kafka:
+#    consumer:
+#      bootstrap-servers: 3.34.8.99:9092
+#      group-id: concert-req
+#      topic: concert-req
+#      partition: 3
+#      max-poll-interval-ms: 600000
+#    listener:
+#      type: SINGLE
 
-cloud:
-  aws:
-    credentials:
-      accessKey: AKIAW3NG45NH2Q4ICFCX
-      secretKey: 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
-    s3:
-      bucket: hosan-s3
-    region:
-      static: ap-northeast-2
-    stack:
-      auto: false
+#cloud:
+#  aws:
+#    credentials:
+#      accessKey: accessKey
+#      secretKey: secretKey
+#    s3:
+#      bucket: hosan-s3
+#    region:
+#      static: ap-northeast-2
+#    stack:
+#      auto: false
 
 payment:
   server:
