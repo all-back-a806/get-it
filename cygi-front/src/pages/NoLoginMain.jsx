@@ -7,7 +7,7 @@ export default function NoLoginMain() {
   // const redirectUri = "http://localhost:3000/oauth/redirect";
 
   const goSocialLogin = (socialType) => {
-    const url = `http://allback.site:8000/api/v1/oauth2/authorization/${socialType}?redirect_uri=${redirectUri}`;
+    const url = `http://api.allback.site/api/v1/oauth2/authorization/${socialType}?redirect_uri=${redirectUri}`;
     window.location.href = url;
   };
 
