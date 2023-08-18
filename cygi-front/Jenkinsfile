@@ -1,7 +1,11 @@
 pipeline{
-    //def WORKSPACE = "/var/jenkins_home/workspace/front/cygi-front/"
     agent any
     
+    environment {
+        DOCKER_HUB_CREDS = 'docker-hub-credentials'
+        GITHUB_CREDS = 'github-credentials'
+    }
+
     stages{
         // stage('Build Start'){
         //     steps{
@@ -14,29 +18,51 @@ pipeline{
 
         stage('Clone Repo'){
             steps{
-                git url: 'https://lab.ssafy.com/s08-final/S08P31A806.git',
-                    credentialsId: 'wnsdk', // Jenkins에서 설정한 credential의 ID
-                    branch: 'deploy-front'
+                git url: 'https://github.com/all-back-a806/get-it.git',
+                    credentialsId: "${GITHUB_CREDS}", // Jenkins에서 설정한 credential의 ID
+                    branch: 'deploy-k8s-front'
             }
         }
 
-        stage('Deploy Docker'){
+        stage('Build Docker'){
             steps{
                 script{
-                    sh "ls"
-                    // sh "docker stop nginx || true && docker rm nginx || true"
-                    // sh "docker stop client || true && docker rm client || true"
-                    sh "docker-compose -f docker-compose.yml pull"
-                    sh "COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1"
-                    sh "docker-compose -f docker-compose.yml up --build -d"
+                    sh "docker build -t front-allback:${env.BUILD_NUMBER} cygi-front/"
+                    sh "docker tag front-allback:${env.BUILD_NUMBER} wlwlsus/front-allback:${env.BUILD_NUMBER}"
                 }
             }
         }
 
-        stage('Finish'){
-            steps{
-                script{
-                    sh "docker rmi -f \$(docker images -f \"dangling=true\" -q) || true"
+        stage('Push Docker to Docker Hub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDS}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
+                        sh "docker push wlwlsus/front-allback:${env.BUILD_NUMBER}"
+                        sh "docker image prune -a -f || true"
+                    }
+                }
+            }
+        }
+
+        stage('Update k8s Manifest') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "${GITHUB_CREDS}", usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_PASSWORD')]) {
+                        sh "rm -rf allback-helm-chart"
+                        sh "git clone https://github.com/wlwlsus/allback-helm-chart.git allback-helm-chart"
+                        sh "ls -al"
+                        dir('allback-helm-chart/front') {
+                            sh "sed -i 's|repository: .\\+|repository: wlwlsus/front-allback|' values.yaml"
+                            sh "sed -i 's|tag: .\\+|tag: ${env.BUILD_NUMBER}|' values.yaml"
+                            sh "git config user.email 'cadqe13@gmail.com'"
+                            sh "git config user.name 'cadqe13'"
+                            sh "git add ."
+                            sh "git diff-index --quiet HEAD || git commit -m 'Update front-allback image to ${env.BUILD_NUMBER}'"
+                            sh "git remote set-url origin https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/wlwlsus/allback-helm-chart.git"
+                            sh "git push origin main"
+                        }
+                    }
                 }
             }
         }
@@ -56,4 +82,17 @@ pipeline{
     //             channel: "all_back_jenkins"
     //     }
     // }
+
+        // stage('Deploy Docker'){
+        //     steps{
+        //         script{
+        //             sh "ls"
+        //             // sh "docker stop nginx || true && docker rm nginx || true"
+        //             // sh "docker stop client || true && docker rm client || true"
+        //             sh "docker-compose -f docker-compose.yml pull"
+        //             sh "COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1"
+        //             sh "docker-compose -f docker-compose.yml up --build -d"
+        //         }
+        //     }
+        // }
 }
