@@ -20,6 +20,6 @@ public interface UserServerClient {
   void deductUserCash(@PathVariable(value = "userId") long userId, @RequestParam(name = "price") int price);
 
   @PostMapping("/point")
-  ResponseEntity<Void> sendPoint(@RequestParam long receiverId, @RequestParam long point);
+  ResponseEntity<Void> sendPoint(@RequestParam(value="receiverId") long receiverId, @RequestParam(value="point") long point);
 }
 
