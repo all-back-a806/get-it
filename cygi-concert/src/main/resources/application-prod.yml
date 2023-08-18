@@ -21,10 +21,10 @@ spring:
     url: jdbc:mysql://${DATABASE_URL}:${DATABASE_PORT}/${DATABASE_USER_DB_NAME}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
-#  servlet:
-#    multipart:
-#      max-file-size: 20MB
-#      max-request-size: 20MB
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
 #  kafka:
 #    consumer:
 #      bootstrap-servers: 3.34.8.99:9092
@@ -35,17 +35,17 @@ spring:
 #    listener:
 #      type: SINGLE
 
-#cloud:
-#  aws:
-#    credentials:
-#      accessKey: accessKey
-#      secretKey: secretKey
-#    s3:
-#      bucket: hosan-s3
-#    region:
-#      static: ap-northeast-2
-#    stack:
-#      auto: false
+cloud:
+  aws:
+    credentials:
+      accessKey: AKIAW3NG45NH2Q4ICFCX
+      secretKey: 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
+    s3:
+      bucket: hosan-s3
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
 
 payment:
   server:
