@@ -31,7 +31,7 @@ public class QueueInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 
         // 3초 대기 (일부러 성능 떨어뜨리기)
-        Thread.sleep(3000);
+//        Thread.sleep(1000);
 
         String jwt = request.getHeader(HttpHeaders.AUTHORIZATION).replace("Bearer", "");
         String[] chunks = jwt.split("\\.");
@@ -39,10 +39,11 @@ public class QueueInterceptor implements HandlerInterceptor {
         Map<String, Object> jsonArray = jsonParser.parseMap(payload);
 
         String COMMAND = request.getHeader("QUEUE");
-        String value = jsonArray.get("userId").toString(); // JWT에서 뽑아낸 사용자 아이디
+        String userId = jsonArray.get("userId").toString(); // JWT에서 뽑아낸 사용자 아이디
 
         // redis 대기열에 저장된 user id 데이터 삭제하기
-        redisTemplate.opsForZSet().remove(KEY, value);
+        redisTemplate.opsForZSet().remove(KEY, userId);
+        redisTemplate.delete(userId);
         logger.info("redis data removed after processing");
 
     }
