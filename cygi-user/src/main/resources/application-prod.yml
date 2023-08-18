@@ -5,8 +5,8 @@ spring:
       client:
         registration:
           kakao:
-            client-id: 'ac489018abf3b5780c12661a8861085a'
-            client-secret: '9wCzvP1Luh2TR1tsN293m1Z1SzT7SliS'
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
             scope:
               - profile_nickname
               - account_email
@@ -31,15 +31,8 @@ spring:
 
   data:
     redis:
-      host: k8a806.p.ssafy.io
-      port: 3300
-
-  zipkin:
-    base-url: http://zipkin.allback.site:9411
-    enabled: true
-  sleuth:
-    sampler:
-      probability: 1.0
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 
   application:
     name: user-service
@@ -47,9 +40,9 @@ spring:
 
   # MySQL DB Connection Info
   datasource:
-    url: jdbc:mysql://k8a806.p.ssafy.io:3306/ssafy806_user
-    username: ssafy806
-    password: ssafy806
+    url: jdbc:mysql://${DATABASE_URL}:${DATABASE_PORT}/${DATABASE_USER_DB_NAME}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
 
 # API Context Path
 server:
@@ -61,10 +54,21 @@ server:
 jwt:
   secret: UDVaY0VRREoyaEl2d2JlWXFFN2haOWF3ekRxbFBzTnpscEFFaE5mdDBSZw==
 
+springdoc:
+  swagger-ui:
+    config-url: /user-service/api/v1/v3/api-docs/swagger-config
+    url: /user-service/api/v1/v3/api-docs
 
-app:
-  oauth2:
-    authorizedRedirectUris: http://allback.site/oauth/redirect
+#  zipkin:
+#    base-url: http://zipkin.allback.site:9411
+#    enabled: true
+#  sleuth:
+#    sampler:
+#      probability: 1.0
+
+#app:
+#  oauth2:
+#    authorizedRedirectUris: http://allback.site/oauth/redirect
 
 ## Eureka Client
 #eureka:
@@ -76,8 +80,3 @@ app:
 #    fetch-registry: true
 #    serviceUrl:
 #      defaultZone: http://eureka-service.eureka-ns.svc.cluster.local:8761/eureka/
-
-springdoc:
-  swagger-ui:
-    config-url: /user-service/api/v1/v3/api-docs/swagger-config
-    url: /user-service/api/v1/v3/api-docs
