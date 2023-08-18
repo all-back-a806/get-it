@@ -18,8 +18,8 @@ pipeline{
 
         stage('Clone Repo'){
             steps{
-                git url: 'https://lab.ssafy.com/s08-final/S08P31A806.git',
-                    credentialsId: 'swj', // Jenkins에서 설정한 credential의 ID
+                git url: 'https://github.com/all-back-a806/get-it.git',
+                    credentialsId: "${GITHUB_CREDS}", // Jenkins에서 설정한 credential의 ID
                     branch: 'deploy-k8s-admin'
             }
         }
