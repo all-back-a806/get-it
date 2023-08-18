@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2023-05-05T15:02:41+0900",
-    comments = "version: 1.4.2.Final, compiler: javac, environment: Java 17.0.7 (Amazon.com Inc.)"
+    date = "2023-08-19T01:00:41+0900",
+    comments = "version: 1.4.2.Final, compiler: javac, environment: Java 17.0.5 (Amazon.com Inc.)"
 )
 @Component
 public class ReservationMapperImpl implements ReservationMapper {
@@ -48,6 +48,7 @@ public class ReservationMapperImpl implements ReservationMapper {
 
         reservation.price( reservationReqDto.getPrice() );
         reservation.concertId( reservationReqDto.getConcertId() );
+        reservation.stageId( reservationReqDto.getStageId() );
         reservation.userId( reservationReqDto.getUserId() );
         reservation.status( reservationReqDto.getStatus() );
         reservation.seat( reservationReqDto.getSeat() );

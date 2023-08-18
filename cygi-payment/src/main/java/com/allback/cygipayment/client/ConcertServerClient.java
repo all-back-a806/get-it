@@ -12,8 +12,8 @@ public interface ConcertServerClient {
     @GetMapping("/endedConcert")
     ResponseEntity<List<Long>> getEndedConcert();
     @GetMapping("/receiverId/{concertId}")
-    ResponseEntity<Long> getUserId(@PathVariable Long concertId);
+    ResponseEntity<Long> getUserId(@PathVariable("concertId") Long concertId);
 
     @GetMapping("/{concertId}/title")
-    ResponseEntity<String> getConcertTitle(@PathVariable Long concertId);
+    ResponseEntity<String> getConcertTitle(@PathVariable("concertId") Long concertId);
 }

@@ -10,21 +10,21 @@ spring:
       ddl-auto: update
     generate-ddl: false
     show-sql: true
-  zipkin:
-    base-url: http://zipkin.allback.site:9411
-    enabled: true
-  sleuth:
-    sampler:
-      probability: 1.0
+#  zipkin:
+#    base-url: http://zipkin.allback.site:9411
+#    enabled: true
+#  sleuth:
+#    sampler:
+#      probability: 1.0
   batch:
     jdbc:
       initialize-schema: always
     job:
       name: ${job.name:NONE}
   datasource:
-    url: jdbc:mysql://k8a806.p.ssafy.io:3307/ssafy806_payment
-    username: ssafy806
-    password: ssafy806
+    url: jdbc:mysql://${DATABASE_URL}:${DATABASE_PORT}/${DATABASE_USER_DB_NAME}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
 
 
 concert:
@@ -40,7 +40,7 @@ user:
 # Kakao Pay Setting
 kakao:
   host: https://kapi.kakao.com
-  app-key: e6444dbd88ac593b0ef5afd9b6d63bd1
+  app-key: ${KAKAO_APP_KEY}
 
 #eureka:
 #  instance:
