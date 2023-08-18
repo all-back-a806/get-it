@@ -20,7 +20,7 @@ pipeline{
             steps{
                 git url: 'https://github.com/all-back-a806/get-it.git',
                     credentialsId: "${GITHUB_CREDS}", // Jenkins에서 설정한 credential의 ID
-                    branch: 'deploy-k8s-gateway'
+                    branch: 'deploy-k8s-user'
             }
         }
 
