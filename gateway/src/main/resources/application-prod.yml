@@ -11,6 +11,10 @@ server:
 #      defaultZone: http://eureka-service.eureka-ns.svc.cluster.local:8761/eureka/
 
 spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
   application:
     name: gateway-service
   cloud:
@@ -95,6 +99,7 @@ spring:
             - RemoveRequestHeader=Cookie
             - RewritePath=/concert-service/(?<segment>.*), /$\{segment}
             - AuthorizationHeaderFilter
+#            - KafkaRequestFilter
 
         - id: admin-service
           uri: http://admin-service.admin-ns.svc.cluster.local
@@ -119,3 +124,5 @@ jwt:
 
 #kafka:
 #  bootstrap-servers: 3.34.8.99:9092
+#  topic: concert-req
+#  partition: 1
