@@ -16,13 +16,13 @@ user:
 spring:
   application:
     name: admin-service
-  zipkin:
-    base-url: http://zipkin.allback.site:9411
-    enabled: true
-  sleuth:
-    sampler:
-      probability: 1.0
-    enabled: true
+#  zipkin:
+#    base-url: http://zipkin.allback.site:9411
+#    enabled: true
+#  sleuth:
+#    sampler:
+#      probability: 1.0
+#    enabled: true
 
 ## Eureka Client
 #eureka:
