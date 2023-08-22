@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/server-payment")
 @RequiredArgsConstructor
 public class PaymentServerController {
+
   private final UserServiceImpl userService;
 
   @PutMapping("/amount")
