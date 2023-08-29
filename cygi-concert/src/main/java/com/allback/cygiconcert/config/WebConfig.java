@@ -1,7 +1,7 @@
 package com.allback.cygiconcert.config;
 
 //import com.allback.cygiconcert.config.interceptor.KafkaInterceptor;
-
+import com.allback.cygiconcert.config.interceptor.QueueInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
