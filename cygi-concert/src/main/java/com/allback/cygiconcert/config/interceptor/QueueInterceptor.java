@@ -30,6 +30,11 @@ public class QueueInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 
+        // 대기열 시스템이 필요없는 애들은 넘기기
+        if (request.getHeader("QUEUE") == "PASS" || response.getStatus() >= 300) {
+            return ;
+        }
+        
         // 3초 대기 (일부러 성능 떨어뜨리기)
         Thread.sleep(5000);
 
