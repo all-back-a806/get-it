@@ -9,7 +9,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-//    @Autowired
+    @Autowired
+    private QueueInterceptor queueInterceptor;
 //    private KafkaInterceptor kafkaInterceptor;
 
     @Override
@@ -23,8 +24,8 @@ public class WebConfig implements WebMvcConfigurer {
             .maxAge(3600);
     }
 
-//    @Override
-//    public void addInterceptors(InterceptorRegistry registry) {
-//        registry.addInterceptor(kafkaInterceptor);
-//    }
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(queueInterceptor);
+    }
 }
