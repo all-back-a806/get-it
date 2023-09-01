@@ -185,7 +185,9 @@ MSA를 적용함으로써 서버들이 기능별로 분리됨에 따라 각 서�
 
 ### 오토 스케일링
 
-접은 내용
+- Deployment에서 Pod의 CPU 초기 사용량 및 오토 스케일링 시점을 기재합니다.
+- 지정해둔 CPU 사용량을 초과하면 Pod 수를 증가시켜 부하를 분산 시킵니다.
+- Helm Chart에 Deployment.yaml, HPA.yaml에 필요한 설정 정보를 기재하였습니다.
 
 <br><br><br>
 
@@ -194,8 +196,11 @@ MSA를 적용함으로써 서버들이 기능별로 분리됨에 따라 각 서�
 
 <br><br><br>
 
-### 헬름차트를 이용한 쿠버네티스 리소스 관리
-접은 내용
+### 헬름 차트를 이용한 쿠버네티스 리소스 관리
+
+- Deployment, Service, HPA 등 필수 yaml 파일을 미리 작성해두고 Argo CD 를 통해 배포합니다.
+- values.yaml에 필수 내용을 작성하고 Resource yaml에서 오버라이딩하여 사용합니다.
+- 헬름 차트 저장소 : https://github.com/wlwlsus/allback-helm-chart
 
 <br><br><br>
 
