@@ -89,15 +89,19 @@
 5. 카카오페이를 통한 포인트 충전
 <img src="document/gif/point_charge.gif" title="reserve" width="80%"/> <br>
 
-6. 대기열 시스템  
+6. 대기열 시스템
+
 - 대기열 통과  
-<img src="document/gif/queue_pass.gif" title="reserve" width="80%"/> <br> 
+<img src="document/gif/queue_pass.gif" title="reserve" width="80%"/> <br>
+
 - 대기열 취소  
 <img src="document/gif/queue_cancel.gif" title="reserve" width="80%"/> <br>
 
+<br>
+
 7. 관리자 페이지 조회
+
 <img src="document/gif/adminpage.gif" title="reserve" width="80%"/> <br>
-     <br>
 
 ---
 
