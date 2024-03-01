@@ -20,6 +20,7 @@
     - [ELK Stack + kafka를 이용한 로그 수집](#elk-stack--kafka를-이용한-로그-수집)
     - [grafana와 prometheus를 이용한 자원 관리](#grafana와-prometheus를-이용한-자원-관리)
 
+
   - 정산 시스템
     - [Spring Batch를 이용한 정산 시스템](#spring-batch를-이용한-정산-시스템)
 
@@ -120,8 +121,8 @@ MSA란 `MicroService Architecture`의 약자로, 기존의 Monolithic Architectu
 | 결제 | Payment Server | Payment DB |
 | 관리자 | Admin Server | |
 
-
-<img src="document/img/architecture/msa.png" title="MSA 아키텍처" width="100%"/>
+### MSA 설계도
+![msa 설계도 drawio](https://github.com/wlwlsus/can-you-get-it/assets/58021968/60e040e7-7186-4daa-acb5-3030727d6a4a)
 
 저희는 `MSA` 를 통해 다음과 같은 장점을 가질 수 있었습니다. 
 
@@ -183,6 +184,10 @@ MSA를 적용함으로써 서버들이 기능별로 분리됨에 따라 각 서�
 
 ### 도커 컨테이너 오케스트레이션
 
+### 아키텍처
+![쿠버네티스 흐름도](https://github.com/wlwlsus/can-you-get-it/assets/58021968/74f5f3b2-3a4e-4171-8a36-b8f6ff1b32df)
+
+### 배포 과정
 <img src="document/img/architecture/k8s_deploy.png" title="k8s 배포 아키텍처" width="80%"/>
 
 <br><br><br>
